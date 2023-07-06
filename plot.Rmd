@@ -1,0 +1,1171 @@
+---
+title: "Untitled"
+author: "Cong Wang"
+date: "2023-07-03"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE}
+#Load data
+rm(list=ls())
+library(readxl)
+mydata<-read_excel("Data_summary_NP.xlsx",sheet = "Sheet2")
+head(mydata)
+str(mydata)
+
+mydata$Forest<-factor(mydata$Forest,levels = c(1,2,3),labels = c("PF","RF","DF"))
+mydata$Forest2<-factor(mydata$Forest,levels = c("PF","RF","DF"),labels = c("Primary Forest","Rehabilitated Forest","Disturbed Forest"))
+mydata$N<-factor(mydata$N,levels = c(1,2),labels = c("N0","N150"))
+mydata$P<-factor(mydata$P,levels = c(1,2),labels = c("P0","P150"))
+mydata$Treatment<-factor(mydata$Treatment,levels = c("CK","N","P","NP"),labels = c("CK","N","P","NP"))
+
+#data transform for regression
+mydata.log<-data.frame(mydata[1:4],log(mydata[,c(5:12)]+1),mydata[13],
+                       log(mydata[,c(14:30)]+1),mydata[31:34])
+
+#data transform for statistical analysis
+mydata.log2<-data.frame(mydata[1:4],log(mydata[,c(5:12)]),mydata[13],
+                        log(mydata[,c(14:30)]),mydata[31:34])
+
+#plot
+library(vegan)
+library(ggpubr)
+library(readxl)
+library(ggplot2)
+
+#Fig. 1a
+#PCA
+library(vegan)
+set.seed(123)
+adonis<-adonis2(mydata[,5:17]~Forest*N*P,data = mydata,permutations = 999,method = "bray")                 
+adonis
+
+data.ord<-mydata
+colnames(data.ord)
+pca<-prcomp(data.ord[,c(5:17)],scale. = TRUE)
+pca
+summary(pca)
+library(ggbiplot)
+ggbiplot(pca,obs.scale = 1,var.scale = 1,ellipse = TRUE) +
+  scale_color_manual(name = "Treatment",values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  scale_shape_discrete(name="Forest")+
+  geom_point(aes(shape=mydata$Forest,colour=mydata$Treatment),size=5)+theme_bw()+
+  theme(legend.direction='vertical',legend.position='right')+
+  theme(axis.text.x = element_text(size = 15,color="black"))+theme(axis.text.y = element_text(size = 15,color="black"))+
+  theme(axis.title = element_text(size = 15,color="black"))+
+  annotate("text",x=1.25,y=-2.5,label="Permanova analysis:\nForest: R2 = 0.45;p = 0.001\nN: R2 = 0.0076 p = 0.035\nP: R2 = 0.50; p = 0.001",color="black",size=3)
+
+#Fig. 1b
+library(ggpubr)
+
+label = "p.signif"
+method = "wilcox.test"
+my_comparison<-list(c("CK","N"),c("CK","P"),c("CK","NP"),c("P","NP"))
+size=17
+
+g1<-ggboxplot(mydata,x='Treatment',y='availS',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Extractable S (mg kg-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g1
+
+#ggsave("plot2/Fig.1b_availS.pdf",plot = last_plot(),units = "in",height = 5,width = 7,dpi = 600)
+```
+
+
+```{r fig.height=15, fig.width=14, message=FALSE, warning=FALSE}
+#Fig. 2
+#ARS#
+g3<-ggboxplot(mydata,x='Treatment',y='ARS',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Absolute ARS activity\n(nmol/g/h)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g3
+
+#"BG"
+g4<-ggboxplot(mydata,x='Treatment',y='BG',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Absolute BG activity\n(nmol/g/h)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g4
+
+#"XYL"
+g5<-ggboxplot(mydata,x='Treatment',y='XYL',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Absolute XYL activity\n(nmol/g/h)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g5
+
+#"NAG"
+g6<-ggboxplot(mydata.log,x='Treatment',y='NAG',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Absolute NAG activity\nLog(nmol/g/h)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g6
+
+#"LAP"
+g7<-ggboxplot(mydata,x='Treatment',y='LAP',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Absolute LAP activity\n(nmol/g/h)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g7
+
+#"ACP"
+g8<-ggboxplot(mydata.log,x='Treatment',y='ACP',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Absolute AP activity\nLog(nmol/g/h)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g8
+
+ggarrange(g3,g4,g5,g6,g7,g8,ncol = 2,nrow = 3,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(a)","(b)","(c)","(d)","(e)","(f)"))
+#ggsave("plot2/Fig.3_enzymeActivity2.pdf",plot = last_plot(),units = "in",height = 15,width = 14,dpi = 600)
+```
+
+
+```{r fig.height=10, fig.width=14, message=FALSE, warning=FALSE}
+#Fig. 3
+g9<-ggboxplot(mydata.log,x='Treatment',y='SARSmbc',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific ARS activity\nLog(nmol ug MBC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g9
+
+g10<-ggboxplot(mydata,x='Treatment',y='logS_C',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(ARS)/Log(BG+XYL)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g10
+
+#logS_N#
+g11<-ggboxplot(mydata,x='Treatment',y='logS_N',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(ARS)/Log(NAG+LAP)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g11
+
+#logS_P#
+g12<-ggboxplot(mydata,x='Treatment',y='logS_P',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(ARS)/Log(AP)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g12
+
+ggarrange(g9,g10,g11,g12,ncol = 2,nrow = 2,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(a)","(b)","(c)","(d)"))
+#ggsave("plot2/Fig.3.pdf",plot = last_plot(),units = "in",height = 10,width = 14,dpi = 600)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+####Fig. 4
+#Fig. 4a
+dataCON<-subset(mydata,Treatment=="CK")
+dataCON.corr<-dataCON[,c(5:6,8:20)]
+#controls of three forest
+library(linkET)
+qcorrplot(correlate(dataCON.corr,method = "spearman"), diag = FALSE,
+          grid_size = 0.25) +
+  geom_square() +
+  geom_mark(sep = '\n',size=5,sig_level = c(0.05,0.01,0.001),sig_thres = 0.05,
+            only_mark = TRUE)+
+  scale_fill_gradientn(colours = RColorBrewer::brewer.pal(11, "RdYlBu"),name="rho") +
+  guides(fill = guide_colorbar(title = "Spearman's rho", order = 3))
+
+library(Hmisc)
+res.cor<-rcorr(as.matrix(dataCON.corr),type = c("spearman"))
+res.cor
+
+library(corrplot)#corrplot()#
+#corrplot(res.cor$r,type = "upper",order = "original",p.mat = res.cor$P,sig.level = 0.05, insig = "blank",tl.pos = "tp")
+#corrplot(res.cor$r,add = TRUE,type = "lower",method = "number",
+         #order = "original",number.cex = 0.6,diag = FALSE,tl.pos = "n",cl.pos = "n")
+
+#Fig. 4b
+dataCON<-mydata[mydata$Treatment=="CK",]
+
+gr1<-ggplot(data = dataCON,aes(x=availS,y=ARS))+geom_point(aes(shape=Forest),size=5,color=c("#fdae61"))+
+  geom_smooth(method = "lm",se=FALSE)+
+  theme_bw()+ylab("Absolute ARS activity\n(nmol/g/h)")+xlab("Extractable S (mg/kg)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size),legend.position = "top")+
+  annotate("text",x=42,y=25,label="R2: 0.04\n  p = 0.491",color="blue",size=5)
+
+summary(lm(ARS~availS,data = dataCON))
+
+gr2<-ggplot(data = dataCON,aes(x=availS,y=SARSmbc))+geom_point(aes(shape=Forest),size=5,color=c("#fdae61"))+
+  geom_smooth(method = "lm",se=FALSE,color="red")+
+  theme_bw()+ylab("Specific ARS activity\n(nmol/ug MBC/h)")+xlab("Extractable S (mg/kg)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size),legend.position = "top")+
+  annotate("text",x=42,y=0.3,label="R2: 0.58\n  p < 0.001",color="blue",size=5)
+
+summary(lm(SARSmbc~availS,data = dataCON))
+
+library(ggpubr)
+ggarrange(gr1,gr2,ncol = 1,nrow = 2,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(b)","(c)"))
+#ggsave("plot2/Fig.4_availSenzyme.pdf",plot = last_plot(),units = "in",height = 7,width = 4,dpi = 600)
+
+#Fig. 4c
+####path analysis of dataCON####
+library(lavaan)
+library(semPlot)
+dataCON.log<-mydata.log[mydata.log$Treatment == "CK",]
+
+#ARS
+#Fit good
+model<-'
+ARS~c1*MBC+c2*availS
+MBC~b1*EC+b2*Total_C
+availS~b3*availP+b4*EC
+EC~a1*Total_C
+availP~a2*Total_C
+
+direct1:=a1*b1*c1
+direct2:=a1*b4*c2
+direct3:=a2*b3*c2
+'
+fit<-sem(model = model,data = dataCON.log,sample.nobs = 15)
+summary(fit,standardized=TRUE,fit.measures=TRUE,rsq=TRUE)
+semPaths(fit,'std',layout = "tree2",sizeMan = 10,sizeLat = 10)
+
+semPlot::semPaths(fit,'std',style="lisrel",layout = "tree2",
+                  nodeLabels = c("ARS","MBC","Extractable S","EC","Extractable P","Total C"),
+                  fade=FALSE,edge.label.cex = 1.75,sizeMan = 8,
+                  residuals=FALSE,exoCov=FALSE)
+
+#SARS
+#Fit good
+model<-'
+SARSmbc~c1*MBC+c2*availS
+MBC~b1*EC+b2*Total_C
+availS~b3*availP+b4*EC
+EC~a1*Total_C
+availP~a2*Total_C
+
+direct1:=a1*b1*c1
+direct2:=a1*b4*c2
+direct3:=a2*b3*c2
+'
+fit<-sem(model = model,data = dataCON.log,sample.nobs = 15)
+summary(fit,standardized=TRUE,fit.measures=TRUE,rsq=TRUE)
+semPaths(fit,'std',layout = "tree2",sizeMan = 10,sizeLat = 10)
+
+semPlot::semPaths(fit,'std',style="lisrel",layout = "tree2",
+                  nodeLabels = c("SARS","MBC","Extractable S","EC","Extractable P","Total C"),
+                  fade=FALSE,edge.label.cex = 1.75,sizeMan = 8,
+                  residuals=FALSE,exoCov=FALSE)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+##Fig. 5
+###Primary forest
+library(psych)
+library(tidyverse)
+dataMF<-mydata[mydata$Forest == "PF",]
+colnames(dataMF)
+
+corr.tmp1<-dataMF[,c("Total_C","Total_N","TC_TN","WSOC","NH4","NO3","availP","availS",
+                     "pH","EC","MBC","MBN","MBC_MBN")]
+corr.tmp2<-dataMF[,c("ARS","SARSmbc","SARSt","logS_C","logS_N","logS_P")]
+
+spman.d12 = corr.test(corr.tmp1, corr.tmp2,use="pairwise",method="spearman",adjust="fdr",alpha=.05,ci=FALSE)
+
+r<-data.frame(spman.d12$r)
+r[is.na(r)] <-0
+r$X<-row.names(r)
+
+r.long <- gather(r, Y, r, 1 : ncol(r)-1,  factor_key=TRUE)
+p<-data.frame(spman.d12$p)
+p$X<-row.names(p)
+p.long <- gather(p, Y, p, 1 : ncol(p)-1, factor_key=TRUE)
+cor.out<-cbind(r.long,p.long$p)
+cor.out$r <- round(as.numeric(cor.out$r), 2)
+str(cor.out$r)
+
+cor.out$X<-factor(cor.out$X,levels = c("Total_C","Total_N","TC_TN","WSOC","NH4","NO3","availP","availS",
+                                       "pH","EC","MBC","MBN","MBC_MBN"))
+cor.out$X<-factor(cor.out$X,labels = c("Total C","Total N","Total C/total N","WSOC","NH4+","NO3-","extractable P","extractable S",
+                                       "pH","EC","MBC","MBN","MBC/MBN"))
+
+cor.out$Y<-factor(cor.out$Y,levels = c("ARS","SARSmbc","SARSt","logS_C","logS_N","logS_P"))
+cor.out$Y<-factor(cor.out$Y,labels = c("ARS","SARSmbc","SARStoc","LogS_C","LogS_N","LogS_P"))
+
+ggplot(cor.out, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(aes(label = r), size = 1.5)+
+  scale_fill_gradient(guide = "legend", high='Salmon', low='CornflowerBlue')+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=8, face="bold",angle = 20),
+        axis.text.y=element_text(colour="black", size=8, face="bold"))
+
+cor.out.sig <- cor.out
+cor.out.sig$r[cor.out.sig$p > 0.05] <- 0
+cor.out$Forest<-"PF"
+cor.out.sig$Forest<-"PF"
+
+ggplot(cor.out.sig, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(data= cor.out.sig[cor.out.sig$r!=0,], aes(label = r), size = 5, font="bold")+
+  scale_fill_gradient2(guide = "legend", high='#2c7bb6',mid="white", low='#d7191c')+
+  theme_bw()+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=15, face="bold",angle = 30, hjust=1),
+        axis.text.y=element_text(colour="black", size=15, face="bold"))
+
+cor.out.PF<-cor.out
+cor.out.sig.PF<-cor.out.sig
+
+
+###Rehabilitated forest
+library(psych)
+library(tidyverse)
+dataRF<-mydata[mydata$Forest=="RF",]
+colnames(dataRF)
+
+corr.tmp1<-dataRF[,c("Total_C","Total_N","TC_TN","WSOC","NH4","NO3","availP","availS",
+                     "pH","EC","MBC","MBN","MBC_MBN")]
+corr.tmp2<-dataRF[,c("ARS","SARSmbc","SARSt","logS_C","logS_N","logS_P")]
+
+spman.d12 = corr.test(corr.tmp1, corr.tmp2,use="pairwise",method="spearman",adjust="fdr",alpha=.05,ci=FALSE)
+
+r<-data.frame(spman.d12$r)
+r[is.na(r)] <-0
+r$X<-row.names(r)
+
+r.long <- gather(r, Y, r, 1 : ncol(r)-1,  factor_key=TRUE)
+p<-data.frame(spman.d12$p)
+p$X<-row.names(p)
+p.long <- gather(p, Y, p, 1 : ncol(p)-1, factor_key=TRUE)
+cor.out<-cbind(r.long,p.long$p)
+cor.out$r <- round(as.numeric(cor.out$r), 2)
+str(cor.out$r)
+
+cor.out$X<-factor(cor.out$X,levels = c("Total_C","Total_N","TC_TN","WSOC","NH4","NO3","availP","availS",
+                                       "pH","EC","MBC","MBN","MBC_MBN"))
+cor.out$X<-factor(cor.out$X,labels = c("Total C","Total N","Total C/total N","WSOC","NH4+","NO3-","extractable P","extractable S",
+                                       "pH","EC","MBC","MBN","MBC/MBN"))
+
+cor.out$Y<-factor(cor.out$Y,levels = c("ARS","SARSmbc","SARSt","logS_C","logS_N","logS_P"))
+cor.out$Y<-factor(cor.out$Y,labels = c("ARS","SARSmbc","SARStoc","LogS_C","LogS_N","LogS_P"))
+
+ggplot(cor.out, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(aes(label = r), size = 1.5)+
+  scale_fill_gradient(guide = "legend", high='Salmon', low='CornflowerBlue')+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=8, face="bold",angle = 20),
+        axis.text.y=element_text(colour="black", size=8, face="bold"))
+
+cor.out.sig <- cor.out
+cor.out.sig$r[cor.out.sig$p > 0.05] <- 0
+cor.out$Forest<-"RF"
+cor.out.sig$Forest<-"RF"
+
+ggplot(cor.out.sig, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(data= cor.out.sig[cor.out.sig$r!=0,], aes(label = r), size = 5, font="bold")+
+  scale_fill_gradient2(guide = "legend", high='#2c7bb6',mid="white", low='#d7191c')+
+  theme_bw()+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=15, face="bold",angle = 30, hjust=1),
+        axis.text.y=element_text(colour="black", size=15, face="bold"))
+
+cor.out.RF<-cor.out
+cor.out.sig.RF<-cor.out.sig
+
+
+###Disturbed forest
+library(psych)
+library(tidyverse)
+dataDF<-mydata[mydata$Forest == "DF",]
+colnames(dataDF)
+
+corr.tmp1<-dataDF[,c("Total_C","Total_N","TC_TN","WSOC","NH4","NO3","availP","availS",
+                     "pH","EC","MBC","MBN","MBC_MBN")]
+corr.tmp2<-dataDF[,c("ARS","SARSmbc","SARSt","logS_C","logS_N","logS_P")]
+
+spman.d12 = corr.test(corr.tmp1, corr.tmp2,use="pairwise",method="spearman",adjust="fdr",alpha=.05,ci=FALSE)
+
+r<-data.frame(spman.d12$r)
+r[is.na(r)] <-0
+r$X<-row.names(r)
+
+r.long <- gather(r, Y, r, 1 : ncol(r)-1,  factor_key=TRUE)
+p<-data.frame(spman.d12$p)
+p$X<-row.names(p)
+p.long <- gather(p, Y, p, 1 : ncol(p)-1, factor_key=TRUE)
+cor.out<-cbind(r.long,p.long$p)
+cor.out$r <- round(as.numeric(cor.out$r), 2)
+str(cor.out$r)
+
+cor.out$X<-factor(cor.out$X,levels = c("Total_C","Total_N","TC_TN","WSOC","NH4","NO3","availP","availS",
+                                       "pH","EC","MBC","MBN","MBC_MBN"))
+cor.out$X<-factor(cor.out$X,labels = c("Total C","Total N","Total C/total N","WSOC","NH4+","NO3-","extractable P","extractable S",
+                                       "pH","EC","MBC","MBN","MBC/MBN"))
+
+cor.out$Y<-factor(cor.out$Y,levels = c("ARS","SARSmbc","SARSt","logS_C","logS_N","logS_P"))
+cor.out$Y<-factor(cor.out$Y,labels = c("ARS","SARSmbc","SARStoc","LogS_C","LogS_N","LogS_P"))
+
+ggplot(cor.out, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(aes(label = r), size = 1.5)+
+  scale_fill_gradient(guide = "legend", high='Salmon', low='CornflowerBlue')+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=8, face="bold",angle = 20),
+        axis.text.y=element_text(colour="black", size=8, face="bold"))
+
+cor.out.sig <- cor.out
+cor.out.sig$r[cor.out.sig$p > 0.05] <- 0
+cor.out$Forest<-"DF"
+cor.out.sig$Forest<-"DF"
+
+ggplot(cor.out.sig, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(data= cor.out.sig[cor.out.sig$r!=0,], aes(label = r), size = 5, font="bold")+
+  scale_fill_gradient2(guide = "legend", high='#2c7bb6',mid="white", low='#d7191c')+
+  theme_bw()+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=15, face="bold",angle = 30, hjust=1),
+        axis.text.y=element_text(colour="black", size=15, face="bold"))
+
+cor.out.DF<-cor.out
+cor.out.sig.DF<-cor.out.sig
+
+
+colnames(cor.out.PF) == colnames(cor.out.RF)
+colnames(cor.out.RF) == colnames(cor.out.DF)
+cor.out.all<-rbind(cor.out.PF,cor.out.RF,cor.out.DF)
+cor.out.all$Forest<-factor(cor.out.all$Forest,levels = c("PF","RF","DF"),
+                           labels = c("PF-Primary Forest","RF-Rehablitated Forest","DF-Disturbed Forest"))
+
+colnames(cor.out.sig.PF) == colnames(cor.out.sig.RF)
+colnames(cor.out.sig.RF) == colnames(cor.out.sig.DF)
+cor.out.sig.all<-rbind(cor.out.sig.PF,cor.out.sig.RF,cor.out.sig.DF)
+cor.out.sig.all$Forest<-factor(cor.out.sig.all$Forest,levels = c("PF","RF","DF"),
+                               labels = c("PF-Primary Forest","RF-Rehablitated Forest","DF-Disturbed Forest"))
+
+ggplot(cor.out.sig.all, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(data= cor.out.sig.all[cor.out.sig.all$r!=0,], aes(label = r), size = 5, font="bold")+
+  scale_fill_gradient2(guide = "legend", high='#2c7bb6',mid="white", low='#d7191c')+
+  theme_bw()+facet_grid(~Forest)+guides(fill = guide_legend(title = 'rho'))+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=15, face="bold",angle = 30, hjust=1),
+        axis.text.y=element_text(colour="black", size=15, face="bold"),
+        strip.text.x = element_text(size = 15,colour = "black"),
+        legend.key.size = unit(25,"pt"))
+
+#ggsave("plot2/Fig.5_spearmanCorr.pdf",plot = last_plot(),units = "in",height = 6,width = 12,dpi = 600)
+
+#Fig. 5b-c
+####Data MF####
+dataMF.log<-subset(mydata.log,Forest=="PF")
+
+####stepwise regression analysis####
+#ARS~
+data.step<- dataMF.log[,5:18]
+library(olsrr)
+model<-ARS~.
+fit<-lm(formula=model,data = data.step)
+ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+test<-ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+
+result.stepre.ars.MF<-data.frame(test$predictors,test$adjr)
+colnames(result.stepre.ars.MF)<-c("prd","adjr")
+#View(result.stepre.ars.MF)
+result.stepre.ars.MF$prd2<-c("extractP")
+result.stepre.ars.MF$adjp<-c("<0.001")
+result.stepre.ars.MF$adjsig<-c("***")
+result.stepre.ars.MF$adjr2<-c(0.6542)
+library(ggplot2)
+p1<-ggplot()+geom_col(data=result.stepre.ars.MF,aes(x=prd2,y=adjr),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.ars.MF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)
+p1
+
+#SARSm~
+set.seed(123)
+data.step<- dataMF.log[,c(5:17,19)]
+library(olsrr)
+model<-SARSmbc~.
+fit<-lm(formula=model,data = data.step)
+ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+test<-ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+plot(test)
+
+result.stepre.sars.MF<-data.frame(test$predictors,test$adjr)
+colnames(result.stepre.sars.MF)<-c("prd","adjr")
+#View(result.stepre.sars.MF)
+result.stepre.sars.MF$prd2<-c("MBC_MBN","MBC","extractP")
+result.stepre.sars.MF$adjp<-c("0.584","0.005","0.032")
+result.stepre.sars.MF$adjsig<-c(".","***","*")
+result.stepre.sars.MF$adjr2<-c(0.2719,0.1133,0.1289)
+library(ggplot2)
+p2<-ggplot()+geom_col(data=result.stepre.sars.MF,aes(x=prd2,y=adjr2),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.sars.MF,aes(x=prd2,y=adjr2,label=adjsig),nudge_y = 0.05,size=7)
+p2
+
+library(ggpubr)
+ggarrange(p1,p2,ncol = 1,nrow = 2,widths=c(1,1),heights=c(1,1),labels = c("(b)","(c)"))
+#ggsave("plot2/Fig.2_stepwiseControls.pdf",plot = last_plot(),units = "in",height = 12,width = 6,dpi = 600)
+
+result.stepre.ars.MF$enzyme<-"ARS-PF"
+result.stepre.sars.MF$enzyme<-"SARS-PF"
+result.stepre.MF<-rbind(result.stepre.ars.MF,result.stepre.sars.MF)
+result.stepre.MF$forest<-"PF"
+#View(result.stepre.MF)
+
+library(ggplot2)
+p3<-ggplot()+geom_col(data=result.stepre.MF,aes(x=prd2,y=adjr2),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"),
+                   axis.text.x = element_text(angle = 15,hjust = 1),
+                   strip.text.x = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.MF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)+
+  facet_grid(~enzyme,scales = "free")
+p3
+
+####Data RF####
+dataRF.log<-subset(mydata.log,Forest=="RF")
+
+####stepwise regression analysis####
+#ARS~
+data.step<- dataRF.log[,5:18]
+library(olsrr)
+model<-ARS~.
+fit<-lm(formula=model,data = data.step)
+ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+test<-ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+
+result.stepre.ars.RF<-data.frame(test$predictors,test$adjr)
+colnames(result.stepre.ars.RF)<-c("prd","adjr")
+#View(result.stepre.ars.RF)
+result.stepre.ars.RF$prd2<-c("MBC")
+result.stepre.ars.RF$adjp<-c("0.100")
+result.stepre.ars.RF$adjsig<-c(".")
+result.stepre.ars.RF$adjr2<-c(0.1432)
+library(ggplot2)
+p4<-ggplot()+geom_col(data=result.stepre.ars.RF,aes(x=prd2,y=adjr),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.ars.RF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)
+p4
+
+#SARSm~
+data.step<- dataRF.log[,c(5:17,19)]#dataCON[,c(3:15,17)]
+library(olsrr)
+model<-SARSmbc~.
+fit<-lm(formula=model,data = data.step)
+ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+test<-ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+
+result.stepre.sars.RF<-data.frame(test$predictors,test$adjr)
+colnames(result.stepre.sars.RF)<-c("prd","adjr")
+#View(result.stepre.sars.RF)
+result.stepre.sars.RF$prd2<-c("MBC")
+result.stepre.sars.RF$adjp<-c("0.0001")
+result.stepre.sars.RF$adjsig<-c("***")
+result.stepre.sars.RF$adjr2<-c(0.5356)
+library(ggplot2)
+p5<-ggplot()+geom_col(data=result.stepre.sars.RF,aes(x=prd2,y=adjr),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.sars.RF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)
+p5
+
+library(ggpubr)
+ggarrange(p1,p2,ncol = 1,nrow = 2,widths=c(1,1),heights=c(1,1),labels = c("(b)","(c)"))
+#ggsave("plot2/Fig.2_stepwiseControls.pdf",plot = last_plot(),units = "in",height = 12,width = 6,dpi = 600)
+
+result.stepre.ars.RF$enzyme<-"ARS-RF"
+result.stepre.sars.RF$enzyme<-"SARS-RF"
+result.stepre.RF<-rbind(result.stepre.ars.RF,result.stepre.sars.RF)
+result.stepre.RF$forest<-"RF"
+#View(result.stepre.RF)
+
+library(ggplot2)
+p6<-ggplot()+geom_col(data=result.stepre.RF,aes(x=prd2,y=adjr),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"),
+                   #axis.text.x = element_text(angle = 15,hjust = 1),
+                   strip.text.x = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.RF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)+
+  facet_grid(~enzyme,scales = "free")
+p6
+
+####Data DF####
+dataDF.log<-subset(mydata.log,Forest=="DF")
+
+####stepwise regression analysis####
+#ARS~
+data.step<- dataDF.log[,5:18]
+library(olsrr)
+model<-ARS~.
+fit<-lm(formula=model,data = data.step)
+ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+test<-ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+
+result.stepre.ars.DF<-data.frame(test$predictors,test$adjr)
+colnames(result.stepre.ars.DF)<-c("prd","adjr")
+#View(result.stepre.ars.DF)
+result.stepre.ars.DF$prd2<-c("extactP","NH4+")
+result.stepre.ars.DF$adjp<-c("0.0001","0.064")
+result.stepre.ars.DF$adjsig<-c("***",".")
+result.stepre.ars.DF$adjr2<-c(0.6387,0.0506)
+
+library(ggplot2)
+p7<-ggplot()+geom_col(data=result.stepre.ars.DF,aes(x=prd2,y=adjr),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.ars.DF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)
+p7
+
+#SARSm~
+data.step<- dataDF.log[,c(5:17,19)]#dataCON[,c(3:15,17)]
+library(olsrr)
+model<-SARSmbc~.
+fit<-lm(formula=model,data = data.step)
+ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+test<-ols_step_forward_p(fit, pent=0.1,perm=0.3,details = TRUE)
+
+result.stepre.sars.DF<-data.frame(test$predictors,test$adjr)
+colnames(result.stepre.sars.DF)<-c("prd","adjr")
+#View(result.stepre.sars.DF)
+result.stepre.sars.DF$prd2<-c("extractS","MBC","extractP","NH4")
+result.stepre.sars.DF$adjp<-c("0.717","0.001","0.003","0.094")
+result.stepre.sars.DF$adjsig<-c(".","***","**",".")
+result.stepre.sars.DF$adjr2<-c(0.3164,0.1049,0.1817,0.0478)
+result.stepre.sars.DF<-result.stepre.sars.DF[result.stepre.sars.DF$adjp<0.05,]
+
+library(ggplot2)
+p8<-ggplot()+geom_col(data=result.stepre.sars.DF,aes(x=prd2,y=adjr),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.sars.DF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)
+p8
+
+library(ggpubr)
+ggarrange(p1,p2,ncol = 1,nrow = 2,widths=c(1,1),heights=c(1,1),labels = c("(b)","(c)"))
+#ggsave("plot2/Fig.2_stepwiseControls.pdf",plot = last_plot(),units = "in",height = 12,width = 6,dpi = 600)
+
+result.stepre.ars.DF$enzyme<-"ARS-DF"
+result.stepre.sars.DF$enzyme<-"SARS-DF"
+result.stepre.DF<-rbind(result.stepre.ars.DF,result.stepre.sars.DF)
+result.stepre.DF$forest<-"DF"
+#View(result.stepre.DF)
+
+library(ggplot2)
+p9<-ggplot()+geom_col(data=result.stepre.DF,aes(x=prd2,y=adjr),fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"),
+                   #axis.text.x = element_text(angle = 15,hjust =1),
+                   strip.text.x = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.DF,aes(x=prd2,y=adjr,label=adjsig),nudge_y = 0.05,size=7)+
+  facet_grid(~enzyme,scales = "free")
+p9
+
+library(ggpubr)
+ggarrange(p3,p6,p9,ncol = 3,nrow = 1,widths=c(1,1),heights=c(1,1),labels = c("(b)","(c)","(d)"))
+#ggsave("plot2/Fig.5_stepwiseControls.pdf",plot = last_plot(),units = "in",height = 4,width = 12,dpi = 600)
+
+library(ggplot2)
+
+p3<-ggplot(data=result.stepre.MF,aes(x=reorder(prd2, -adjr2),y=adjr2))+geom_col(fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"),
+                   #axis.text.x = element_text(angle = 15,hjust = 1),
+                   strip.text.x = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.MF,aes(x=prd2,y=adjr2,label=adjsig),nudge_y = 0.05,size=7)+
+  geom_text(aes(label=round(adjr2,2)),vjust=2,color="black",size=3)+
+  facet_grid(~enzyme,scales = "free")
+p3
+
+p6<-ggplot(data=result.stepre.RF,aes(x=reorder(prd2, -adjr2),y=adjr2))+geom_col(fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"),
+                   #axis.text.x = element_text(angle = 15,hjust = 1),
+                   strip.text.x = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.RF,aes(x=prd2,y=adjr2,label=adjsig),nudge_y = 0.05,size=7)+
+  geom_text(aes(label=round(adjr2,2)),vjust=2,color="black",size=3)+
+  facet_grid(~enzyme,scales = "free")
+p6
+
+p9<-ggplot(data=result.stepre.DF,aes(x=reorder(prd2, -adjr2),y=adjr2))+geom_col(fill="#fdae61",color=NA,width = 0.5)+
+  labs(title = NULL, x = "Predictors", y = 'Adj. R-Square', fill = NULL)+
+  theme_bw()+theme(panel.grid = element_blank(),axis.text = element_text(size = 15,colour = "black"),
+                   axis.title = element_text(size = 15,colour = "black"),
+                   #axis.text.x = element_text(angle = 15,hjust =1),
+                   strip.text.x = element_text(size = 15,colour = "black"))+
+  geom_text(data = result.stepre.DF,aes(x=prd2,y=adjr2,label=adjsig),nudge_y = 0.05,size=7)+
+  geom_text(aes(label=round(adjr2,2)),vjust=2,color="black",size=3)+
+  facet_grid(~enzyme,scales = "free")
+p9
+
+library(ggpubr)
+ggarrange(p3,p6,p9,ncol = 3,nrow = 1,widths=c(1,1),heights=c(1,1),labels = c("(b)","(c)","(d)"))
+#ggsave("plot2/Fig.5_stepwiseForest2.pdf",plot = last_plot(),units = "in",height = 3,width = 12,dpi = 600)
+```
+
+
+```{r fig.height=15, fig.width=14, message=FALSE, warning=FALSE}
+#Fig. S1
+#SARSmbc#
+g9<-ggboxplot(mydata.log,x='Treatment',y='SARSmbc',fill = 'Treatment',facet.by = 'Forest',
+              add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific ARS activity\nLog(nmol ug MBC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g9
+
+#SBG
+g14<-ggboxplot(mydata,x='Treatment',y='SBG',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific BG activity\n(nmol ug MBC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g14
+
+#SXYL
+g15<-ggboxplot(mydata,x='Treatment',y='SXYL',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific XYL activity\n(nmol ug MBC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g15
+
+#SNAG
+g16<-ggboxplot(mydata,x='Treatment',y='SNAG',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific NAG activity\n(nmol ug MBC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g16
+
+#SLAP
+g17<-ggboxplot(mydata,x='Treatment',y='SLAP',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific LAP activity\n(nmol ug MBC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g17
+
+#SAP
+g18<-ggboxplot(mydata.log,x='Treatment',y='SACP',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific AP activity\nLog(nmol ug MBC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g18
+
+ggarrange(g9,g14,g15,g16,g17,g18,ncol = 2,nrow = 3,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(a)","(b)","(c)","(d)","(e)","(f)"))
+#ggsave("plot2/Fig.3_SpecificEnzymeActivity.pdf",plot = last_plot(),units = "in",height = 15,width = 14,dpi = 600)
+```
+
+
+```{r fig.height=15, fig.width=14, message=FALSE, warning=FALSE}
+#Fig. S2
+#SARSt
+g13<-ggboxplot(mydata,x='Treatment',y='SARSt',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific ARS activity\n(nmol ug TC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g13
+
+#SBGt
+mydata$SBGt<-mydata$BG/mydata$Total_C
+g34<-ggboxplot(mydata,x='Treatment',y='SBGt',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific BG activity\n(nmol ug TC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g34
+
+#SXYL
+mydata$SXYLt<-mydata$XYL/mydata$Total_C
+g35<-ggboxplot(mydata,x='Treatment',y='SXYLt',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific XYL activity\n(nmol ug TC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g35
+
+#SNAG
+mydata$SNAGt<-mydata$NAG/mydata$Total_C
+mydata.log$SNAGt<-log(mydata$SNAGt+1)
+g36<-ggboxplot(mydata.log,x='Treatment',y='SNAGt',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific NAG activity\nLog(nmol ug TC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g36
+
+#SLAP
+mydata$SLAPt<-mydata$LAP/mydata$Total_C
+mydata.log$SLAPt<-log(mydata$SLAPt+1)
+g37<-ggboxplot(mydata.log,x='Treatment',y='SLAPt',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific LAP activity\nLog(nmol ug TC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g37
+
+#SAP
+mydata$SACPt<-mydata$ACP/mydata$Total_C
+mydata.log$SACPt<-log(mydata$SACPt+1)
+g38<-ggboxplot(mydata.log,x='Treatment',y='SACPt',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Specific AP activity\nLog(nmol ug TC-1 h-1)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g38
+
+ggarrange(g13,g34,g35,g36,g37,g38,ncol = 2,nrow = 3,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(a)","(b)","(c)","(d)","(e)","(f)"))
+#ggsave("plot2/Fig.S2_SpecificEnzymeActivity2.pdf",plot = last_plot(),units = "in",height = 15,width = 14,dpi = 600)
+```
+
+
+```{r fig.height=15, fig.width=14, message=FALSE, warning=FALSE}
+#Fig. S3
+#logS_C#
+g10<-ggboxplot(mydata,x='Treatment',y='logS_C',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(ARS)/Log(BG+XYL)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g10
+
+#logS_N#
+g11<-ggboxplot(mydata,x='Treatment',y='logS_N',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(ARS)/Log(NAG+LAP)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g11
+
+#logS_P#
+g12<-ggboxplot(mydata,x='Treatment',y='logS_P',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(ARS)/Log(AP)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g12
+
+#logC_N
+mydata$logC_N<-log(mydata$BG+mydata$XYL)/log(mydata$NAG+mydata$LAP)
+g31<-ggboxplot(mydata,x='Treatment',y='logC_N',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(BG+XYL)/Log(NAG+LAP)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g31
+
+#logC_P
+mydata$logC_P<-log(mydata$BG+mydata$XYL)/log(mydata$ACP)
+g32<-ggboxplot(mydata,x='Treatment',y='logC_P',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(BG+XYL)/Log(AP)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g32
+
+#logN_P
+mydata$logN_P<-log(mydata$NAG+mydata$LAP)/log(mydata$ACP)
+g33<-ggboxplot(mydata,x='Treatment',y='logN_P',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(NAG+LAP)/Log(AP)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g33
+
+ggarrange(g10,g11,g12,g31,g32,g33,ncol = 2,nrow = 3,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(a)","(b)","(c)","(d)","(e)","(f)"))
+#ggsave("plot2/Fig.4_enzymeActivity5.pdf",plot = last_plot(),units = "in",height = 15,width = 14,dpi = 600)
+```
+
+
+```{r fig.height=15, fig.width=14, message=FALSE, warning=FALSE}
+#Fig. S4
+#TC
+g19<-ggboxplot(mydata,x='Treatment',y='Total_C',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Total C (mg/g)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g19
+
+#TN
+g20<-ggboxplot(mydata,x='Treatment',y='Total_N',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Total N (mg/g)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g20
+
+#TC_TN
+g21<-ggboxplot(mydata,x='Treatment',y='TC_TN',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Total C/Total N")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g21
+
+#WSOC
+g22<-ggboxplot(mydata,x='Treatment',y='WSOC',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("WSOC (mg/kg)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g22
+
+#NH4
+g23<-ggboxplot(mydata,x='Treatment',y='NH4',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("NH4+-N (mg/kg)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g23
+
+#NO3
+g24<-ggboxplot(mydata,x='Treatment',y='NO3',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("NO3--N (mg/kg)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g24
+
+ggarrange(g19,g20,g21,g22,g23,g24,ncol = 2,nrow = 3,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(a)","(b)","(c)","(d)","(e)","(f)"))
+#ggsave("plot2/Fig.S3_soilproperties.pdf",plot = last_plot(),units = "in",height = 15,width = 14,dpi = 600)
+```
+
+
+```{r fig.height=15, fig.width=14, message=FALSE, warning=FALSE}
+#Fig. S5
+#availP
+g25<-ggboxplot(mydata.log,x='Treatment',y='availP',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Extractable P Log(mg/kg)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g25
+
+#pH
+g26<-ggboxplot(mydata,x='Treatment',y='pH',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("pH")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g26
+
+#EC
+g27<-ggboxplot(mydata.log,x='Treatment',y='EC',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("EC Log(us/cm)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g27
+
+#MBC
+#mydata$MBC<-mydata$MBC*1000
+g28<-ggboxplot(mydata,x='Treatment',y='MBC',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("MBC (mg/g)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g28
+
+#MBN
+#mydata$MBN<-mydata$MBN/1000
+g29<-ggboxplot(mydata,x='Treatment',y='MBN',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("MBN (mg/g)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g29
+
+#MBC_MBN
+g30<-ggboxplot(mydata.log,x='Treatment',y='MBC_MBN',fill = 'Treatment',facet.by = 'Forest',
+               add = "jitter",bxp.errorbar = T,bxp.errorbar.width = 0.3)+
+  scale_fill_manual(values = c("#31a354","#d8b365","#e66101","#b2abd2"))+
+  stat_compare_means(method = "t.test",comparisons = my_comparison)+
+  ylab("Log(MBC/MBN)")+
+  theme(axis.text = element_text(size = size,color = "black"),axis.title = element_text(size = size,color = "black"),
+        legend.text = element_text(size = size),legend.title = element_text(size = size),
+        strip.text.x = element_text(size = size))
+g30
+
+ggarrange(g25,g26,g27,g28,g29,g30,ncol = 2,nrow = 3,widths=c(1,1),heights=c(1,1),
+          common.legend = TRUE,labels = c("(a)","(b)","(c)","(d)","(e)","(f)"))
+#ggsave("plot2/Fig.S4_soilproperties.pdf",plot = last_plot(),units = "in",height = 15,width = 14,dpi = 600)
+```
+
+
+```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
+#Fig. S6
+ggplot(cor.out.all, aes(Y,X)) + 
+  geom_tile(aes(fill = r), size=1)+
+  geom_text(data= cor.out.all[cor.out.all$r!=0,], aes(label = r), size = 5, font="bold")+
+  scale_fill_gradient2(guide = "legend", high='#2c7bb6',mid="white", low='#d7191c')+
+  theme_bw()+facet_grid(~Forest)+guides(fill = guide_legend(title = 'rho'))+
+  theme(axis.title= element_blank(),
+        axis.text.x=element_text(colour="black", size=15, face="bold",angle = 30, hjust=1),
+        axis.text.y=element_text(colour="black", size=15, face="bold"))
+
+#ggsave("plot2/Fig.S1_spearmanCorr.pdf",plot = last_plot(),units = "in",height = 6,width = 12,dpi = 600)
+
+```
+
+## R Markdown
